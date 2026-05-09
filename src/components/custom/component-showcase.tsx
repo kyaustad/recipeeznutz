@@ -110,7 +110,7 @@ export default function ComponentShowcase() {
   }
 
   return (
-    <div className="min-h-dvh pb-16 overflow-y-auto">
+    <div className="pb-16">
       <div className="mx-auto max-w-5xl space-y-8 px-4 py-10">
         <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <Breadcrumb>
