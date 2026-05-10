@@ -46,6 +46,8 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  --color-affirmative: var(--affirmative);
 }
 
 :root {
@@ -60,6 +62,10 @@
   --glass-sat: 1.78;
   --glass-bright: 1.03;
   --titlebar-height: 2.5rem;
+  /* Modal portal sits below the titlebar; see `components/ui/dialog.tsx` */
+  --z-dialog-overlay: 50;
+  --z-dialog-content: 51;
+  --z-titlebar: 100;
 
   --background: oklch(0.96 0.025 245);
   --foreground: oklch(0.22 0.03 265);
@@ -93,6 +99,8 @@
   --sidebar-accent-foreground: oklch(0.28 0.03 265);
   --sidebar-border: oklch(1 0 0 / 0.38);
   --sidebar-ring: oklch(0.72 0.05 265);
+
+  --affirmative: oklch(0.89 0.22 143.01);
 }
 
 .dark {
@@ -397,7 +405,7 @@ body::-webkit-scrollbar {
   top: 0;
   left: 0;
   right: 0;
-  z-index: 50;
+  z-index: var(--z-titlebar);
   color: var(--foreground);
   background: color-mix(in oklch, var(--card) 55%, transparent);
   border-bottom: 1px solid var(--border);

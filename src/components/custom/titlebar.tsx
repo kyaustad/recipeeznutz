@@ -24,7 +24,7 @@ export function Titlebar() {
   };
 
   return (
-    <div className="titlebar">
+    <div className="titlebar" data-app-chrome="titlebar">
       <div data-tauri-drag-region></div>
       {/* Add the app logo to the left corner of the titlebar */}
       <ThemeToggle className="absolute left-2 top-1 rounded-full max-h-8" />

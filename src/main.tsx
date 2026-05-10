@@ -4,10 +4,12 @@ import App from "./App";
 import "./App.css";
 import { TooltipProvider } from "./components/ui/tooltip";
 import { Titlebar } from "./components/custom/titlebar";
+import { Toaster } from "./components/ui/sonner";
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <TooltipProvider>
+      <Toaster richColors closeButton />
       <Titlebar />
       <main className="app-main">
         <App />
