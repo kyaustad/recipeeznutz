@@ -3,7 +3,10 @@ use rusqlite::{Connection, Result};
 use serde_json;
 use std::fs;
 use std::path::PathBuf;
+use std::sync::OnceLock;
 use tauri::{AppHandle, Manager};
+
+static DB_PATH: OnceLock<PathBuf> = OnceLock::new();
 
 pub fn init_db(app: &AppHandle) -> Result<()> {
     let tauri_dir = app
@@ -18,6 +21,8 @@ pub fn init_db(app: &AppHandle) -> Result<()> {
     }
 
     let db_path = db_dir.join("recipes.db");
+
+    let _ = DB_PATH.set(db_path.clone());
 
     let conn = Connection::open(&db_path)?;
 
@@ -46,9 +51,9 @@ pub fn init_db(app: &AppHandle) -> Result<()> {
 }
 
 fn get_connection() -> Result<Connection> {
-    let db_path = PathBuf::from("./data/recipes.db");
+    let path = DB_PATH.get().expect("Error in path to DB");
 
-    Connection::open(db_path)
+    Connection::open(path)
 }
 
 pub fn create_recipe(recipe: NewRecipe) -> Result<()> {

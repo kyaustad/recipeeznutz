@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, ts_rs::TS)]
+#[ts(export)]
 pub struct Recipe {
     pub id: Option<i32>,
 
@@ -15,7 +16,8 @@ pub struct Recipe {
     pub notes: Option<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, ts_rs::TS)]
+#[ts(export)]
 pub struct NewRecipe {
     pub name: String,
     pub category: String,

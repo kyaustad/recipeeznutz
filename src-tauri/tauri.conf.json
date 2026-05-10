@@ -12,11 +12,12 @@
   "app": {
     "windows": [
       {
-        "title": "recipeeznutz",
+        "title": "RecipeezNutz",
         "width": 1200,
         "height": 800,
         "resizable": true,
-        "decorations": false
+        "decorations": false,
+        "center": true
       }
     ],
     "security": {
