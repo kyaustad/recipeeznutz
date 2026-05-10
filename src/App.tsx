@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { Hello } from "./features/onboarding/components/hello";
+import { OnboardingManager } from "./features/onboarding/components/onboarding-manager";
 
 export default function App() {
   return (
@@ -9,7 +9,7 @@ export default function App() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <Hello />
+        <OnboardingManager />
       </motion.div>
     </motion.div>
   );
