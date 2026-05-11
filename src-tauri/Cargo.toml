@@ -1,8 +1,8 @@
 [package]
 name = "recipeeznutz"
-version = "1.0.0"
-description = "A Tauri App"
-authors = ["you"]
+version = "1.0.1"
+description = "A simple, local only recipe manager in Tauri using React and Rust."
+authors = ["Kyle Austad"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
