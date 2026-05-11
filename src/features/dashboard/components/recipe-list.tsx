@@ -70,6 +70,7 @@ export function RecipeList({
   onRecipeSelected,
   activeRecipe,
   onRecipesImported,
+  onRecipesDeleted,
 }: {
   children?: ReactNode;
   /** Increment from parent to reload the list after mutations */
@@ -77,6 +78,7 @@ export function RecipeList({
   onRecipeSelected: (recipe: Recipe) => void;
   activeRecipe: Recipe | null;
   onRecipesImported: () => void;
+  onRecipesDeleted: () => void;
 }) {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [sortBy, setSortBy] = useState<SortOption>("name-asc");
@@ -353,7 +355,7 @@ export function RecipeList({
           onOpenChange={setDeleteAllRecipesDialogOpen}
         >
           <DialogTrigger asChild>
-            <Button variant="destructive">
+            <Button variant="destructive" disabled={recipes.length === 0}>
               <Trash2Icon />
               Delete All Recipes
             </Button>
@@ -374,6 +376,7 @@ export function RecipeList({
                     .then(() => {
                       toast.success("All recipes deleted successfully");
                       onRecipesImported();
+                      onRecipesDeleted();
                       setDeleteAllRecipesDialogOpen(false);
                     })
                     .catch((error) => {

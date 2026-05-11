@@ -46,6 +46,7 @@ export function Dashboard() {
               onRecipeSelected={(recipe) => determineActiveRecipe(recipe)}
               activeRecipe={activeRecipe}
               onRecipesImported={refetchRecipes}
+              onRecipesDeleted={() => setActiveRecipe(null)}
             >
               <Button onClick={(_e) => setAddNewRecipeDialogOpen(true)}>
                 <PlusCircleIcon></PlusCircleIcon>Add
