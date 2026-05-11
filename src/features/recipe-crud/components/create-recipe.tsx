@@ -248,10 +248,6 @@ export function AddRecipeDialog({
                   <ImagePlusIcon className="size-4" />
                   Choose images
                 </Button>
-                <p className="text-muted-foreground text-xs">
-                  Stored as image data for this session (no backend changes).
-                  You can switch to file paths later if you add a dialog plugin.
-                </p>
                 {images.length > 0 && (
                   <ul className="flex flex-col gap-2">
                     {images.map((src, i) => (

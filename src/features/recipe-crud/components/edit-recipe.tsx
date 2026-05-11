@@ -261,7 +261,7 @@ export function EditRecipeDialog({
                   Add images
                 </Button>
                 <p className="text-muted-foreground text-xs">
-                  Existing images are kept; new files are stored as image data.
+                  Existing images are kept.
                 </p>
                 {images.length > 0 && (
                   <ul className="flex flex-col gap-2">
