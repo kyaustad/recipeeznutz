@@ -2,6 +2,7 @@ use crate::models::{NewRecipe, Recipe};
 use rusqlite::{Connection, Result};
 use serde_json;
 use std::fs;
+use std::io::{BufReader, BufWriter};
 use std::path::PathBuf;
 use std::sync::OnceLock;
 use tauri::{AppHandle, Manager};
@@ -151,7 +152,7 @@ pub fn update_recipe(recipe: Recipe) -> Result<()> {
             UPDATE recipes
             SET
                 name = ?1,
-                category ?2,
+                category = ?2,
                 ingredients = ?3,
                 steps = ?4,
                 images = ?5,
@@ -177,5 +178,61 @@ pub fn delete_recipe(id: i32) -> Result<()> {
 
     conn.execute("DELETE FROM recipes WHERE id = ?1", [id])?;
 
+    Ok(())
+}
+
+/// Returned as the invoke error string when the user dismisses the save dialog without choosing a path.
+pub const EXPORT_CANCELLED: &str = "EXPORT_CANCELLED";
+
+pub fn export_recipes() -> std::result::Result<(), String> {
+    let recipes = get_recipes().map_err(|e| e.to_string())?;
+    let file_path = rfd::FileDialog::new()
+        .set_title("Save Recipes")
+        .set_file_name("recipes.nutbook")
+        .save_file();
+    match file_path {
+        Some(path) => {
+            let file = fs::File::create(path).map_err(|e| e.to_string())?;
+            let writer = BufWriter::new(file);
+            serde_json::to_writer(writer, &recipes).map_err(|e| e.to_string())?;
+            Ok(())
+        }
+        None => Err(EXPORT_CANCELLED.to_string()),
+    }
+}
+
+pub fn import_recipes(replace_existing: bool) -> Result<()> {
+    let conn = get_connection()?;
+    let file_path = rfd::FileDialog::new()
+        .set_title("Open Recipes")
+        .set_file_name("recipes.nutbook")
+        .pick_file();
+    let mut recipes = Vec::new();
+    if let Some(file_path) = file_path {
+        let file = fs::File::open(file_path).unwrap();
+        let reader = BufReader::new(file);
+        let new_recipes: Vec<Recipe> = serde_json::from_reader(reader).unwrap();
+        recipes.extend(new_recipes);
+    }
+    if replace_existing {
+        conn.execute("DELETE FROM recipes", []).unwrap();
+    }
+    for recipe in recipes {
+        create_recipe(NewRecipe {
+            name: recipe.name,
+            category: recipe.category,
+            ingredients: recipe.ingredients,
+            steps: recipe.steps,
+            images: recipe.images,
+            notes: recipe.notes,
+        })
+        .unwrap();
+    }
+    Ok(())
+}
+
+pub fn delete_all_recipes() -> Result<()> {
+    let conn = get_connection()?;
+    conn.execute("DELETE FROM recipes", []).unwrap();
     Ok(())
 }

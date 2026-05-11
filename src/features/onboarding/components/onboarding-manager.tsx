@@ -37,7 +37,7 @@ export function OnboardingManager({
   };
 
   return (
-    <div className="min-w-full min-h-[90vh] flex flex-col items-center justify-between">
+    <div className="flex min-h-0 min-w-full flex-1 flex-col items-center justify-between overflow-y-auto py-4">
       {getStageComponent()}
       <motion.div
         initial={ANIM.initial}

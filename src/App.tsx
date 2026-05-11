@@ -7,8 +7,9 @@ export default function App() {
     localStorage.getItem("onboardingComplete") === "true",
   );
   return (
-    <motion.div>
+    <motion.div className="flex min-h-0 flex-1 flex-col">
       <motion.div
+        className="flex min-h-0 flex-1 flex-col"
         initial={{ opacity: 0, y: 100 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}

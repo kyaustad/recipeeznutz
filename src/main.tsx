@@ -9,7 +9,7 @@ import { Toaster } from "./components/ui/sonner";
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <TooltipProvider>
-      <Toaster richColors closeButton />
+      <Toaster closeButton />
       <Titlebar />
       <main className="app-main">
         <App />

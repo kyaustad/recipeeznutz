@@ -12,7 +12,13 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronRightIcon, EyeIcon, SearchIcon } from "lucide-react";
+import {
+  ChevronRightIcon,
+  SquareArrowRightExitIcon,
+  SearchIcon,
+  SquareArrowRightEnterIcon,
+  Trash2Icon,
+} from "lucide-react";
 import Fuse from "fuse.js";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -22,6 +28,36 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+
+/** Matches `EXPORT_CANCELLED` from `src-tauri/src/db.rs` when the save dialog is dismissed. */
+const EXPORT_CANCELLED_CODE = "EXPORT_CANCELLED";
+
+function invokeErrorMessage(error: unknown): string {
+  if (typeof error === "string") return error;
+  if (error instanceof Error) return error.message;
+  if (
+    error !== null &&
+    typeof error === "object" &&
+    "message" in error &&
+    typeof (error as { message: unknown }).message === "string"
+  ) {
+    return (error as { message: string }).message;
+  }
+  return String(error);
+}
 
 /** Select value: show every category */
 const ALL_CATEGORIES = "__all__" as const;
@@ -30,15 +66,26 @@ type SortOption = "name-asc" | "name-desc" | "category";
 
 export function RecipeList({
   children,
-  refetchRecipes,
+  recipesReloadToken,
+  onRecipeSelected,
+  activeRecipe,
+  onRecipesImported,
 }: {
   children?: ReactNode;
-  refetchRecipes: () => void;
+  /** Increment from parent to reload the list after mutations */
+  recipesReloadToken: number;
+  onRecipeSelected: (recipe: Recipe) => void;
+  activeRecipe: Recipe | null;
+  onRecipesImported: () => void;
 }) {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [sortBy, setSortBy] = useState<SortOption>("name-asc");
   const [categoryFilter, setCategoryFilter] = useState<string>(ALL_CATEGORIES);
   const [searchQuery, setSearchQuery] = useState("");
+  const [replaceExisting, setReplaceExisting] = useState(false);
+  const [importRecipesDialogOpen, setImportRecipesDialogOpen] = useState(false);
+  const [deleteAllRecipesDialogOpen, setDeleteAllRecipesDialogOpen] =
+    useState(false);
 
   useEffect(() => {
     const loadRecipes = async () => {
@@ -46,7 +93,7 @@ export function RecipeList({
       setRecipes(fetchedRecipes);
     };
     void loadRecipes();
-  }, [refetchRecipes]);
+  }, [recipesReloadToken]);
 
   const categories = useMemo(() => {
     const names = recipes.map((r) => r.category.trim()).filter(Boolean);
@@ -114,21 +161,22 @@ export function RecipeList({
       initial={ANIM.initial}
       animate={ANIM.animate}
       transition={ANIM.transition.mid}
+      className="flex h-full min-h-0 flex-col"
     >
       <Card
         className={
-          "min-w-sm max-w-md min-h-full bg-secondary/50 p-6 rounded-lg"
+          "flex min-h-0 min-w-0 w-full max-w-md flex-1 flex-col bg-secondary/50 p-4 sm:p-6 rounded-lg"
         }
       >
-        <CardHeader className="flex flex-row justify-between items-center">
+        <CardHeader className="flex shrink-0 flex-row items-center justify-between">
           <CardTitle className="text-xl">All Recipes</CardTitle>
           {children}
         </CardHeader>
-        <Separator className="w-full bg-black/25 dark:invert"></Separator>
+        <Separator className="w-full shrink-0 bg-black/25 dark:invert"></Separator>
 
         {recipes.length > 0 ? (
           <>
-            <div className="relative pt-4 items-center flex flex-row">
+            <div className="relative flex shrink-0 flex-row items-center pt-4">
               <SearchIcon
                 className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 "
                 aria-hidden
@@ -142,7 +190,7 @@ export function RecipeList({
                 aria-label="Search recipes"
               />
             </div>
-            <div className="grid grid-cols-2 gap-2 pt-3">
+            <div className="grid shrink-0 grid-cols-2 gap-2 pt-3">
               <div className="flex min-w-0 flex-col gap-1">
                 <span className="text-muted-foreground text-xs font-medium">
                   Sort
@@ -190,33 +238,176 @@ export function RecipeList({
 
         {recipes.length > 0 ? (
           filteredSortedRecipes.length > 0 ? (
-            <div className="mt-3 flex flex-col gap-0">
-              {filteredSortedRecipes.map((recipe: Recipe) => (
-                <RecipeListItem
-                  key={recipe.id ?? recipe.name}
-                  recipe={recipe}
-                />
-              ))}
+            // overflow-hidden: establishes flex minimum so only the inner pane scrolls (not Card clip squashing items)
+            <div className="mt-3 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+              <div
+                className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain [scrollbar-gutter:stable]"
+                role="list"
+                aria-label="Recipe list"
+              >
+                <div className="flex flex-col gap-2">
+                  {filteredSortedRecipes.map((recipe: Recipe) => (
+                    <RecipeListItem
+                      key={recipe.id ?? recipe.name}
+                      recipe={recipe}
+                      onRecipeSelected={onRecipeSelected}
+                      isActive={activeRecipe?.id === recipe.id}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
           ) : (
-            <p className="text-muted-foreground mt-3 px-1 text-center text-sm">
+            <p className="text-muted-foreground mt-3 shrink-0 px-1 text-center text-sm">
               No recipes match your search or filters.
             </p>
           )
         ) : (
-          <p className="text-muted-foreground text-center text-sm">{`No Recipes Yet!`}</p>
+          <p className="text-muted-foreground shrink-0 text-center text-sm">{`No Recipes Yet!`}</p>
         )}
       </Card>
+      <Separator className="w-full shrink-0 bg-black/25 dark:invert mt-2 max-w-md"></Separator>
+      <div className="flex shrink-0 flex-row items-center justify-between p-4 max-w-md">
+        <Button
+          variant="default"
+          disabled={recipes.length === 0}
+          onClick={async () => {
+            try {
+              await invoke("export_recipes_command");
+              toast.success("Recipes exported successfully.");
+            } catch (error) {
+              const msg = invokeErrorMessage(error);
+              if (
+                msg === EXPORT_CANCELLED_CODE ||
+                msg.includes(EXPORT_CANCELLED_CODE)
+              ) {
+                toast.message("Export cancelled", {
+                  description: "No file was saved.",
+                });
+              } else {
+                toast.error(msg || "Export failed.");
+              }
+            }
+          }}
+        >
+          <SquareArrowRightExitIcon />
+          Export All Recipes
+        </Button>
+        <Dialog
+          open={importRecipesDialogOpen}
+          onOpenChange={setImportRecipesDialogOpen}
+        >
+          <DialogTrigger asChild>
+            <Button variant="default">
+              <SquareArrowRightEnterIcon />
+              Import Recipes
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Import Recipes</DialogTitle>
+            </DialogHeader>
+            <DialogDescription>Import recipes from a file.</DialogDescription>
+            {/* <Input type="file" accept=".nutbook" /> */}
+            <div className="flex flex-row items-center gap-2">
+              <Checkbox
+                id="replace-existing"
+                checked={replaceExisting}
+                onCheckedChange={(checked) =>
+                  setReplaceExisting(
+                    checked === "indeterminate" ? false : checked,
+                  )
+                }
+              />
+              <Label htmlFor="replace-existing">Replace existing recipes</Label>
+            </div>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="outline">Cancel</Button>
+              </DialogClose>
+              <Button
+                variant="default"
+                onClick={() =>
+                  invoke("import_recipes_command", {
+                    replaceExisting: replaceExisting,
+                  })
+                    .then(() => {
+                      toast.success("Recipes imported successfully");
+                      onRecipesImported();
+                      setImportRecipesDialogOpen(false);
+                    })
+                    .catch((error) => {
+                      toast.error(`Failed to import recipes: ${error}`);
+                    })
+                }
+              >
+                Choose File
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+      <div className="flex shrink-0 flex-row items-center justify-center p-2 pt-0 max-w-md">
+        <Dialog
+          open={deleteAllRecipesDialogOpen}
+          onOpenChange={setDeleteAllRecipesDialogOpen}
+        >
+          <DialogTrigger asChild>
+            <Button variant="destructive">
+              <Trash2Icon />
+              Delete All Recipes
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete All Recipes</DialogTitle>
+            </DialogHeader>
+            <DialogDescription>This action cannot be undone.</DialogDescription>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="outline">Cancel</Button>
+              </DialogClose>
+              <Button
+                variant="destructive"
+                onClick={() =>
+                  invoke("delete_all_recipes_command")
+                    .then(() => {
+                      toast.success("All recipes deleted successfully");
+                      onRecipesImported();
+                      setDeleteAllRecipesDialogOpen(false);
+                    })
+                    .catch((error) => {
+                      toast.error(`Failed to delete all recipes: ${error}`);
+                    })
+                }
+              >
+                Delete All Recipes
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
     </motion.div>
   );
 }
 
-export function RecipeListItem({ recipe }: { recipe: Recipe }) {
+export function RecipeListItem({
+  recipe,
+  onRecipeSelected,
+  isActive,
+}: {
+  recipe: Recipe;
+  onRecipeSelected: (recipe: Recipe) => void;
+  isActive: boolean;
+}) {
   const firstImage = recipe.images[0];
   const hasImage = Boolean(firstImage?.trim());
 
   return (
-    <Card className="relative mb-2 overflow-hidden py-0">
+    <Card
+      role="listitem"
+      className="relative mb-2 shrink-0 overflow-hidden py-0"
+    >
       <CardContent className="flex min-h-[88px] gap-0 p-0">
         <div className="relative z-10 flex w-1/2 flex-col justify-center gap-0.5 px-4 py-2.5">
           <CardTitle className="text-base font-semibold leading-snug">
@@ -243,14 +434,32 @@ export function RecipeListItem({ recipe }: { recipe: Recipe }) {
             <div className="absolute inset-0 bg-muted/35" aria-hidden />
           )}
           <div className="relative z-10 flex h-full items-center justify-end p-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              aria-label={`View ${recipe.name}`}
-            >
-              <ChevronRightIcon className="size-4" />
-            </Button>
+            <div className="relative isolate flex items-center justify-center">
+              {/* Radial scrim behind the control so it reads on busy / tinted images */}
+              <span
+                aria-hidden
+                className={cn(
+                  "pointer-events-none absolute left-1/2 top-1/2 z-0 h-[7.25rem] w-[7.25rem] -translate-x-1/2 -translate-y-1/2 rounded-full",
+                  "bg-[radial-gradient(circle_closest-side,rgba(0,0,0,0.34)_0%,rgba(0,0,0,0.12)_42%,transparent_72%)]",
+                  "dark:bg-[radial-gradient(circle_closest-side,rgba(0,0,0,0.75)_0%,rgba(0,0,0,0.2)_48%,transparent_74%)]",
+                )}
+              />
+              <Button
+                type="button"
+                variant={"outline"}
+                size="icon-xl"
+                className="relative z-10 shadow-sm dark:bg-primary dark:text-primary-foreground hover:cursor-pointer rounded-full"
+                aria-label={`View ${recipe.name}`}
+                onClick={() => onRecipeSelected(recipe)}
+              >
+                <ChevronRightIcon
+                  className={cn(
+                    "size-6 transition-transform duration-200",
+                    isActive && "size-8 rotate-180 text-destructive ",
+                  )}
+                />
+              </Button>
+            </div>
           </div>
         </div>
       </CardContent>
